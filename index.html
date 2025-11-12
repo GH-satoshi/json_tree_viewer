@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JSON Tree Viewer</title>
+<style>
+body {
+  font-family: sans-serif;
+  background: #f7f9fb;
+  margin: 0;
+  padding: 20px;
+}
+h1 {
+  text-align: center;
+}
+#fileInput, #urlInput {
+  display: block;
+  margin: 10px auto;
+}
+#urlInput {
+  width: 80%;
+  max-width: 500px;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+#loadUrlBtn {
+  display: block;
+  margin: 8px auto 20px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  background: #4a90e2;
+  color: white;
+  cursor: pointer;
+}
+#loadUrlBtn:hover {
+  background: #357ac9;
+}
+#treeContainer {
+  background: #fff;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  font-family: "Consolas", monospace;
+  font-size: 14px;
+  white-space: pre-wrap;
+}
+ul {
+  list-style: none;
+  padding-left: 20px;
+  margin: 0;
+}
+li {
+  position: relative;
+  margin: 3px 0;
+}
+.toggle {
+  cursor: pointer;
+  color: #0074d9;
+  font-weight: bold;
+  user-select: none;
+}
+.toggle::before {
+  content: "▶";
+  display: inline-block;
+  margin-right: 4px;
+  transition: transform 0.2s;
+}
+.open > .toggle::before {
+  transform: rotate(90deg);
+}
+.key {
+  color: #b58900;
+}
+.string {
+  color: #2aa198;
+}
+.number {
+  color: #268bd2;
+}
+.boolean {
+  color: #cb4b16;
+}
+.null {
+  color: #999;
+}
+</style>
+</head>
+
+<body>
+<h1>JSONツリービューア</h1>
+<input type="file" id="fileInput" accept=".json">
+<button id="loadUrlBtn">URLから読み込み</button><input type="text" id="urlInput" placeholder="https://example.com/data.json">
+<div id="treeContainer">ファイルまたはURLを指定してください。</div>
+
+<script>
+document.getElementById("fileInput").addEventListener("change", function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const json = JSON.parse(e.target.result);
+      showJSON(json);
+    } catch (err) {
+      showError("JSONの読み込みに失敗しました。", err);
+    }
+  };
+  reader.readAsText(file, "utf-8");
+});
+
+document.getElementById("loadUrlBtn").addEventListener("click", async function() {
+  const url = document.getElementById("urlInput").value.trim();
+  if (!url) {
+    alert("URLを入力してください。");
+    return;
+  }
+
+  const container = document.getElementById("treeContainer");
+  container.innerHTML = "<p>読み込み中...</p>";
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("HTTPエラー: " + response.status);
+    const json = await response.json();
+    showJSON(json);
+  } catch (err) {
+    showError("URLからの読み込みに失敗しました。", err);
+  }
+});
+
+function showJSON(json) {
+  const container = document.getElementById("treeContainer");
+  container.innerHTML = "";
+  container.appendChild(renderNode(json));
+}
+
+function showError(msg, err) {
+  const container = document.getElementById("treeContainer");
+  container.innerHTML = `<p style='color:red'>${msg}</p><pre>${err}</pre>`;
+}
+
+function renderNode(value) {
+  if (typeof value !== "object" || value === null) {
+    const span = document.createElement("span");
+    span.classList.add(typeof value);
+    span.textContent = formatValue(value);
+    return span;
+  }
+
+  const isArray = Array.isArray(value);
+  const ul = document.createElement("ul");
+
+  for (const key in value) {
+    const li = document.createElement("li");
+    const val = value[key];
+    const hasChildren = typeof val === "object" && val !== null;
+
+    if (hasChildren) {
+      const div = document.createElement("div");
+      div.classList.add("toggle");
+      div.textContent = (isArray ? `[${key}]` : `"${key}"`) + ":";
+      li.appendChild(div);
+      const child = renderNode(val);
+      li.appendChild(child);
+      div.addEventListener("click", () => {
+        li.classList.toggle("open");
+        child.style.display = (child.style.display === "none") ? "block" : "none";
+      });
+      child.style.display = "none";
+    } else {
+      li.innerHTML = `<span class="key">${isArray ? `[${key}]` : `"${key}"`}:</span> ${formatHTMLValue(val)}`;
+    }
+    ul.appendChild(li);
+  }
+  return ul;
+}
+
+function formatValue(val) {
+  if (val === null) return "null";
+  if (typeof val === "string") return `"${val}"`;
+  return val;
+}
+
+function formatHTMLValue(val) {
+  if (val === null) return `<span class="null">null</span>`;
+  if (typeof val === "string") return `<span class="string">"${val}"</span>`;
+  if (typeof val === "number") return `<span class="number">${val}</span>`;
+  if (typeof val === "boolean") return `<span class="boolean">${val}</span>`;
+  return val;
+}
+</script>
+</body>
+</html>
