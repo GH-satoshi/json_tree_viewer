@@ -94,6 +94,13 @@ li {
 <input type="file" id="fileInput" accept=".json">
 <div><input type="text" id="urlInput" placeholder="https://example.com/data.json"><button id="loadUrlBtn">URLから読み込み</button></div>
 <div id="treeContainer">ファイルまたはURLを指定してください。</div>
+<br>
+<div>
+東京都の天気予報の概要<br>
+https://www.jma.go.jp/bosai/forecast/data/overview_forecast/130000.json<br>
+東京地方の今日・明日・明後日の天気予報を取得する<br>
+https://www.jma.go.jp/bosai/forecast/data/forecast/130000.json<br>
+</div>
 
 <script>
 document.getElementById("fileInput").addEventListener("change", function(event) {
